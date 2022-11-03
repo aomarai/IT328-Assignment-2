@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 class minDFA {
@@ -137,7 +138,7 @@ class minDFA {
         }
         String[] fState = finalS.toArray(new String[finalS.size()]);
         tempMin.setFinal(fState);
-        tempMin.createTransTable();
+        tempMin.createTransitionTable();
         for (int i = 0, m = 0; i < tTable.length; i++) {
             String[] stt = new String[tTable[0].length + 1];
             if (tTable[i][0] - minimizer.getNumStates() < 0) {
@@ -255,7 +256,7 @@ class DFAMinimizer {
         return st;
     }
 
-    public void createTransTable() {
+    public void createTransitionTable() {
         transitionTable = new int[state.length][alphabet.length];
     }
 
@@ -349,6 +350,17 @@ class DFAMinimizer {
         System.out.println("Yes: "+ yesCount + " No: " + noCount);
     }
 }
+
+/**
+ * Takes a .nfa file name as a command line argument and parses the file to convert the NFA to a DFA.
+ * After the conversion, the input strings are validated and the DFA is displayed on the terminal.
+ * The DFA is written to a file with the same name as the input file but with a .dfa extension instead of .nfa
+ * in the same directory as the input file.
+ *
+ * @author Ashkan Omaraie (aomarai)
+ * @author Riley Anderson (rander9)
+ * @author Shane Kennedy (skenne5)
+ */
 public class NFA2DFA {
     private List<String> inputStrings = new ArrayList<String>();
     private List<List<Set<Integer>>> NFA = new ArrayList<List<Set<Integer>>>();
@@ -358,21 +370,29 @@ public class NFA2DFA {
     private List<List<Integer>> dfaTransitions = new ArrayList<List<Integer>>();
     private String lambdaAlphabet = "~";
     private String nfaFileName = "";
-    private String inputFileName = "";
-    private int initialStart;
+    private int initialState;
     private List<String> sigma;
 
+    /**
+     * Constructor for NFA2DFA class which takes in a .nfa file name and reads that file.
+     * @param nfaFileName Name of the .nfa file to be read.
+     */
     public NFA2DFA(String nfaFileName) {
         this.nfaFileName = nfaFileName;
         readFiles();
     }
 
+    /**
+     * Constructor for NFA2DFA class that converts an NFA to a DFA and prints the DFA to the console and to a file.
+     */
     public void NFAtoDFA() {
         convertNFA();
         printDFA();
     }
 
-    //TODO: Change how the input file is read to fit the new file format
+    /**
+     * Reads the NFA file and stores the input strings in a list.
+     */
     private void readFiles() {
         try {
             FileReader fr = new FileReader(nfaFileName);
@@ -416,7 +436,7 @@ public class NFA2DFA {
             StringTokenizer st = new StringTokenizer(bufferedReader.readLine(), " ");
             st.nextToken();
             st.nextToken();
-            initialStart = Integer.parseInt(st.nextToken());
+            initialState = Integer.parseInt(st.nextToken());
             //System.out.println("Initial State: " + initialStart);
             // Skip the part of the line saying 'Accepting State(s):'
             StringTokenizer finalStateSt = new StringTokenizer(bufferedReader.readLine(), " ,");
@@ -436,7 +456,7 @@ public class NFA2DFA {
                 newLine = bufferedReader.readLine();
             }
 
-            System.out.println("Input Strings: " + inputStrings);
+            //System.out.println("Input Strings: " + inputStrings);
         }
         catch(IOException e) {
             System.out.println("Unable to open the file " + e.getMessage());
@@ -445,58 +465,13 @@ public class NFA2DFA {
             System.out.println(e.getMessage());
         }
     }
-    private void MinimizingDFA(String inputFileName, List<String> inputStrings) {
-        DFAMinimizer dfaMinimizer = new DFAMinimizer();
-        String[] tokens;
-        String DFAStates = "";
-        for (int i = 0; i < dfaTransitions.size(); i++) {
-            DFAStates = DFAStates + String.valueOf(i) + "  ";
-        }
-        DFAStates = DFAStates.replaceAll("\\s+", " ");
-        tokens = DFAStates.replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.initState(tokens);
-        String DFASigma = "";
-        for (String alphabet : sigma) {
-            DFASigma = DFASigma + " " + alphabet;
-        }
-        DFASigma = DFASigma.replaceAll("\\s+", " ");
-        tokens = DFASigma.replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.initAlphabet(tokens);
-        String DFAInitialState = "0";
-        DFAInitialState = DFAInitialState.replaceAll("\\s+", " ");
-        tokens = DFAInitialState.replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.setInitial(tokens[0]);
-        String DFA_finalstate = "";
-        for (int i : dfaFinalStates) {
-            DFA_finalstate = DFA_finalstate + " " + i;
-        }
-        DFA_finalstate = DFA_finalstate.replaceAll("\\s+", " ");
-        tokens = DFA_finalstate.replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.setFinal(tokens);
-        String DFA_Rows_tt = "";
-        dfaMinimizer.createTransTable();
-        for (int i = 0; i < dfaTransitions.size(); i++) {
-            DFA_Rows_tt = DFA_Rows_tt + String.valueOf(i);
-            for (int j = 0; j < dfaTransitions.get(i).size(); j++) {
-                int temp3 = dfaTransitions.get(i).get(j);
-                DFA_Rows_tt = DFA_Rows_tt + " " + String.valueOf(temp3);
-            }
-            DFA_Rows_tt = DFA_Rows_tt.replaceAll("\\s+", " ");
-            tokens = DFA_Rows_tt.replaceFirst("^ ", "").split(" ");
-            dfaMinimizer.setRowTT(tokens);
-            DFA_Rows_tt = " ";
-        }
-        System.out.println();
-        System.out.println("The Minimized DFA is");
-        minDFA minimizer = new minDFA(dfaMinimizer, false);
-        System.out.println();
-        DFAMinimizer min = minimizer.miniz(dfaMinimizer);
-        min.display(inputFileName, inputStrings);
-    }
-    //TODO: Output the converted DFA to a .dfa file
+
+    /**
+     * Converts the NFA read in from a .nfa file to a DFA.
+     */
     private void convertNFA() {
         Set<Integer> tempStates = new HashSet<Integer>();
-        transitionState(lambdaAlphabet, initialStart, tempStates);
+        transitionState(lambdaAlphabet, initialState, tempStates);
         DFAstates.add(tempStates);
         for (Integer integer : tempStates) {
             if(acceptingStates.contains(integer)) {
@@ -535,6 +510,13 @@ public class NFA2DFA {
             dfaTransitions.add(transition);
         }
     }
+
+    /**
+     * Recursively finds all the states that can be reached from the given state.
+     * @param alphabet The string of symbols accepted by the NFA. (e.g. "ab")
+     * @param state The current state of the NFA.
+     * @param tempStatesHolder The set of states that the NFA can transition to.
+     */
     private void transitionState(String alphabet, int state, Set<Integer> tempStatesHolder) {
         List<Set<Integer>> currState = NFA.get(state);
         boolean isFinal = (Objects.equals(alphabet, lambdaAlphabet));
@@ -547,35 +529,98 @@ public class NFA2DFA {
                 transitionState(lambdaAlphabet, val, tempStatesHolder);
         }
     }
-    //TODO: Make the DFA get output to a .dfa file
+
+    /**
+     * Prints the DFA that was created from an NFA to the console and writes it to a file.
+     */
     private void printDFA() {
-        System.out.println(nfaFileName + " to DFA:");
-        System.out.print("Sigma: ");
+        // Print the name of the file, replacing the .nfa with .dfa
+        System.out.println("NFA " + nfaFileName + " to DFA " + nfaFileName.replace(".nfa", ".dfa\n"));
+        System.out.print("Sigma:     ");
+        // Print the alphabet and get the length of the printed line
         for (String alphabetString : sigma) {
-            System.out.print(alphabetString + " ");
+            System.out.print(alphabetString + "     ");
         }
         System.out.println("");
-        for (String a : sigma) {
-            System.out.print("----");
+        // Print a dashed line as long as the sigma line
+        int lineLength = 6 + (sigma.size() * 6);
+        for (int i = 0; i < lineLength; i++) {
+            System.out.print("-");
         }
+
         System.out.println("");
-        for (int i=0; i<dfaTransitions.size();i++) {
-            System.out.print(i + ": ");
-            for (Integer integer : dfaTransitions.get(i)) {
-                System.out.print(integer + " ");
+        // Print the integer at each state except the final state making sure the final state doesn't have any spaces
+        for (int i = 0; i < dfaTransitions.size(); i++) {
+            System.out.print("    " + i + ":     ");
+            for (int j = 0; j < dfaTransitions.get(i).size() - 1; j++) {
+                System.out.print(dfaTransitions.get(i).get(j) + "     ");
             }
-            System.out.println("");
+            System.out.println(dfaTransitions.get(i).get(dfaTransitions.get(i).size() - 1));
         }
-        System.out.println("---------------");
-        System.out.println("0 : Initial State");
+        for (int i = 0; i < lineLength; i++) {
+            System.out.print("-");
+        }
+        System.out.println("\n0: Initial State");
         List<String> finalStates = new ArrayList<String>();
         for (Integer val : dfaFinalStates) {
             finalStates.add(val.toString());
         }
         System.out.print(String.join(",", finalStates));
-        System.out.print(": Accepting State(s)\n");
+        System.out.print(": Accepting State(s)\n\n");
         validateInputStrings();
+
+        // Output the DFA to a .dfa file, using X.dfa as an example and replacing the .nfa with .dfa
+        try {
+            PrintWriter writer = new PrintWriter(nfaFileName.replace(".nfa", ".dfa"), StandardCharsets.UTF_8);
+            // Write the number of states as |Q|: number of states
+            writer.println("|Q|: " + dfaTransitions.size());
+            // Write the alphabet except the final one as Sigma using 5 spaces to separate each letter,
+            // making sure the final one doesn't have spaces after it
+            writer.print("Sigma:     ");
+            for (int i = 0; i < sigma.size() - 1; i++) {
+                writer.print(sigma.get(i) + "     ");
+            }
+            writer.print(sigma.get(sigma.size() - 1));
+            writer.print("\n");
+            // Write the first dashed line
+            for (int i = 0; i < lineLength; i++) {
+                writer.print("-");
+            }
+            // Write the transition table except the final one making sure the final one doesn't have
+            // spaces after it
+            writer.print("\n");
+            for (int i = 0; i < dfaTransitions.size(); i++) {
+                writer.print("    " + i + ":     ");
+                for (int j = 0; j < dfaTransitions.get(i).size() - 1; j++) {
+                    writer.print(dfaTransitions.get(i).get(j) + "     ");
+                }
+                writer.println(dfaTransitions.get(i).get(dfaTransitions.get(i).size() - 1));
+            }
+            // Write the second dashed line
+            for (int i = 0; i < lineLength; i++) {
+                writer.print("-");
+            }
+            // Write the DFA's initial state
+            writer.println("\nInitial State: 0");
+            writer.print("Accepting State(s): ");
+            writer.print(String.join(",", finalStates));
+            writer.print("\n\n");
+            // Write the input strings for testing except for the last one
+            writer.print("-- Input strings for testing -----------\n");
+            for (int i = 0; i < inputStrings.size() - 1; i++) {
+                writer.print(inputStrings.get(i) + "\n");
+            }
+            // Write the last input string for testing
+            writer.print(inputStrings.get(inputStrings.size() - 1));
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Error writing to file: " + e.getMessage());
+        }
     }
+
+    /**
+     * Validates the input strings for the DFA.
+     */
     private void validateInputStrings() {
         int yesCount = 0;
         int noCount = 0;
@@ -591,7 +636,6 @@ public class NFA2DFA {
                 else
                     currState = dfaTransitions.get(currState).get(alphaIndex);
             }
-            //System.out.print("Curstate: " + currState);
             if(dfaFinalStates.contains(currState)) {
                 yesCount++;
                 System.out.print("Yes ");
@@ -605,9 +649,10 @@ public class NFA2DFA {
         System.out.println("Yes: "+ yesCount + " No: " + noCount);
     }
     public static void main(String[] args) {
-        if(args.length < 1) {
-            System.out.println("Incorrect input syntax.\nUsage: java NFA2DFA <input file>");
-            System.exit(0);
+        // Should accept only one argument
+        if(args.length != 1) {
+            System.out.println("Please enter a valid file name");
+            return;
         }
         NFA2DFA program = new NFA2DFA(args[0]);
         program.NFAtoDFA();
