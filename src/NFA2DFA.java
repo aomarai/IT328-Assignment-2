@@ -14,9 +14,7 @@ class minDFA {
             }
         }
     }
-
-    // Takes a DFA from a text file and minimizes it to an optimal DFA, then outputs that DFA to a text file
-    public DFAMinimizer miniz(DFAMinimizer minimizer) {
+    public DFAMinimizer minimizerObj(DFAMinimizer minimizer) {
         for (int i = 0; i < minimizer.getFinalSize(); i++) {
             int row = minimizer.getIndexOf(minimizer.getFinal(i)) - 1;
             for (int col = 0; col < row + 1; col++) {
@@ -289,37 +287,56 @@ class DFAMinimizer {
         int symbolIndex = this.getSymbolIndex(symbol);
         return state[transitionTable[fromIndex][symbolIndex]];
     }
-    public void display(String inputFileName, List<String> inputStrings) {
+    public void printMinimizedDFA(String inputFileName, List<String> inputStrings) {
         int largestLen = 0;
-        for (int i = 0; i < state.length; i++) {
-            if (state[i].length() > largestLen)
-                largestLen = state[i].length();
+        for (String s : state) {
+            if (s.length() > largestLen)
+                largestLen = s.length();
         }
         largestLen = largestLen * -1;
-        System.out.printf("%s   ", "Sigma");
-        for (int i = 0; i < alphabet.length; i++) {
-            System.out.printf("%s   ", alphabet[i]);
+        System.out.print(" Sigma:     ");
+        // Print out the sigma with 5 spaces between each symbol except for the last one which should have no spaces
+        for (int i = 0; i < alphabet.length - 1; i++) {
+            System.out.printf("%-5s", alphabet[i]);
+        }
+        System.out.println(alphabet[alphabet.length - 1]);
+        // Calculate the length of the sigma line
+        int sigmaLen = 7 + (alphabet.length * 5);
+        System.out.print(" ");
+        // Print out the correct amount of dashes
+        for (int i = 0; i < sigmaLen; i++) {
+            System.out.print("-");
         }
         System.out.println();
-        System.out.println("-----------------------------");
+        // Print out the states with 5 spaces between each state except for the last one which should have no spaces
         for (int i = 0; i < transitionTable.length; i++) {
-            System.out.printf("%s:  ", state[i].split(",")[0]);
+            System.out.print("     ");
+            System.out.printf("%s:     ", state[i].split(",")[0]);
             for (int j = 0; j < transitionTable[i].length; j++) {
-                System.out.printf("%s   ", state[transitionTable[i][j]].split(",")[0]);
+                System.out.printf("%s    ", state[transitionTable[i][j]].split(",")[0]);
             }
             System.out.println();
         }
-        System.out.println("---------------");
-        System.out.println("0 : Initial State");
+
+        // Print out the dashed line again
+        System.out.print(" ");
+        for (int i = 0; i < sigmaLen; i++) {
+            System.out.print("-");
+        }
+        System.out.println("\n0: Initial State");
         Set<String> finalStates = new HashSet<String>();
         for (Integer val : finalState) {
             finalStates.add(val.toString());
         }
         System.out.print(String.join(",", finalStates));
-        System.out.print(" : Accepting State(s)");
+        System.out.print(": Accepting State(s)");
         System.out.println("\n");
 
         validateInputStrings(inputFileName, inputStrings);
+
+        // Print out the number of states from the original DFA and the minimized DFA
+        System.out.println("|Q|" + " -> " + state.length);
+
     }
 
     public void validateInputStrings(String inputFileName, List<String> inputStrings) {
@@ -348,6 +365,11 @@ class DFAMinimizer {
         }
         System.out.println("\n");
         System.out.println("Yes: "+ yesCount + " No: " + noCount);
+    }
+
+    public void readDFA(String dfaFileName)
+    {
+
     }
 }
 
@@ -536,7 +558,7 @@ public class NFA2DFA {
     private void printDFA() {
         // Print the name of the file, replacing the .nfa with .dfa
         System.out.println("NFA " + nfaFileName + " to DFA " + nfaFileName.replace(".nfa", ".dfa\n"));
-        System.out.print("Sigma:     ");
+        System.out.print(" Sigma:     ");
         // Print the alphabet and get the length of the printed line
         for (String alphabetString : sigma) {
             System.out.print(alphabetString + "     ");
@@ -544,6 +566,7 @@ public class NFA2DFA {
         System.out.println("");
         // Print a dashed line as long as the sigma line
         int lineLength = 6 + (sigma.size() * 6);
+        System.out.print(" ");
         for (int i = 0; i < lineLength; i++) {
             System.out.print("-");
         }
@@ -551,12 +574,13 @@ public class NFA2DFA {
         System.out.println("");
         // Print the integer at each state except the final state making sure the final state doesn't have any spaces
         for (int i = 0; i < dfaTransitions.size(); i++) {
-            System.out.print("    " + i + ":     ");
+            System.out.print("     " + i + ":     ");
             for (int j = 0; j < dfaTransitions.get(i).size() - 1; j++) {
                 System.out.print(dfaTransitions.get(i).get(j) + "     ");
             }
             System.out.println(dfaTransitions.get(i).get(dfaTransitions.get(i).size() - 1));
         }
+        System.out.print(" ");
         for (int i = 0; i < lineLength; i++) {
             System.out.print("-");
         }
@@ -618,6 +642,54 @@ public class NFA2DFA {
         }
     }
 
+    private void MinimizingDFA(String inputFileName, List<String> inputStrings) {
+        DFAMinimizer dfaMinimizer = new DFAMinimizer();
+        String[] tokens;
+        StringBuilder DFAStates = new StringBuilder();
+        for (int i = 0; i < dfaTransitions.size(); i++) {
+            DFAStates.append(String.valueOf(i)).append("  ");
+        }
+        DFAStates = new StringBuilder(DFAStates.toString().replaceAll("\\s+", " "));
+        tokens = DFAStates.toString().replaceFirst("^ ", "").split(" ");
+        dfaMinimizer.initState(tokens);
+        StringBuilder DFASigma = new StringBuilder();
+        for (String alphabet : sigma) {
+            DFASigma.append(" ").append(alphabet);
+        }
+        DFASigma = new StringBuilder(DFASigma.toString().replaceAll("\\s+", " "));
+        tokens = DFASigma.toString().replaceFirst("^ ", "").split(" ");
+        dfaMinimizer.initAlphabet(tokens);
+        String DFAInitialState = "0";
+        DFAInitialState = DFAInitialState.replaceAll("\\s+", " ");
+        tokens = DFAInitialState.replaceFirst("^ ", "").split(" ");
+        dfaMinimizer.setInitial(tokens[0]);
+        StringBuilder DFA_finalstate = new StringBuilder();
+        for (int i : dfaFinalStates) {
+            DFA_finalstate.append(" ").append(i);
+        }
+        DFA_finalstate = new StringBuilder(DFA_finalstate.toString().replaceAll("\\s+", " "));
+        tokens = DFA_finalstate.toString().replaceFirst("^ ", "").split(" ");
+        dfaMinimizer.setFinal(tokens);
+        StringBuilder DFA_Rows_tt = new StringBuilder();
+        dfaMinimizer.createTransitionTable();
+        for (int i = 0; i < dfaTransitions.size(); i++) {
+            DFA_Rows_tt.append(String.valueOf(i));
+            for (int j = 0; j < dfaTransitions.get(i).size(); j++) {
+                int temp3 = dfaTransitions.get(i).get(j);
+                DFA_Rows_tt.append(" ").append(String.valueOf(temp3));
+            }
+            DFA_Rows_tt = new StringBuilder(DFA_Rows_tt.toString().replaceAll("\\s+", " "));
+            tokens = DFA_Rows_tt.toString().replaceFirst("^ ", "").split(" ");
+            dfaMinimizer.setRowTT(tokens);
+            DFA_Rows_tt = new StringBuilder(" ");
+        }
+        System.out.println();
+        System.out.println("Minimized DFA from " + inputFileName);
+        minDFA minimizer = new minDFA(dfaMinimizer, false);
+        DFAMinimizer min = minimizer.minimizerObj(dfaMinimizer);
+        min.printMinimizedDFA(inputFileName, inputStrings);
+    }
+
     /**
      * Validates the input strings for the DFA.
      */
@@ -656,6 +728,6 @@ public class NFA2DFA {
         }
         NFA2DFA program = new NFA2DFA(args[0]);
         program.NFAtoDFA();
-        //program.MinimizingDFA(program.inputFileName, program.inputStrings);
+        program.MinimizingDFA(program.nfaFileName.replace(".nfa", ".dfa"), program.inputStrings);
     }
 }
