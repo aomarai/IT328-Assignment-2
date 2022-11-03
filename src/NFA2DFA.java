@@ -651,7 +651,7 @@ public class NFA2DFA {
     public static void main(String[] args) {
         // Should accept only one argument
         if(args.length != 1) {
-            System.out.println("Please enter a valid file name");
+            System.out.println("Please enter a valid file name. Usage: java NFA2DFA <filename>");
             return;
         }
         NFA2DFA program = new NFA2DFA(args[0]);
