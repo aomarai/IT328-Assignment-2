@@ -351,10 +351,59 @@ class DFAMinimizer {
 
         // Print out the number of states from the original DFA and the minimized DFA
         // Example: "|Q| 6 -> 4"
-        // TODO: Grab the previous number of states from the original DFA via file reading
         System.out.println("|Q| " + numStates + " -> " + state.length);
 
+        // Write out the minimized DFA to a .dfaMin file
+        try {
+            PrintWriter writer = new PrintWriter(inputFileName + "Min", StandardCharsets.UTF_8);
+            writer.println("|Q|: " + numStates + state.length);
+            // Write the alphabet with 5 spaces between each letter except for the last one which should have no spaces after it
+            writer.print("Sigma:     ");
+            for (int i = 0; i < alphabet.length - 1; i++) {
+                writer.print(alphabet[i] + "     ");
+            }
+            writer.println(alphabet[alphabet.length - 1]);
+            // Write out the first dashed line
+            int lineLength = 6 + (alphabet.length * 6);
+            for (int i = 0; i < lineLength; i++) {
+                writer.print("-");
+            }
+            // Write out the transition table with 5 spaces between each state except for the last one which should have no spaces after it
+            writer.println();
+            for (int i = 0; i < transitionTable.length; i++) {
+                writer.print("    ");
+                writer.print(state[i].split(",")[0] + ":     ");
+                for (int j = 0; j < transitionTable[i].length; j++) {
+                    writer.print(state[transitionTable[i][j]].split(",")[0] + "     ");
+                }
+                writer.println();
+            }
+            // Write out the second dashed line
+            for (int i = 0; i < lineLength; i++) {
+                writer.print("-");
+            }
+            // Write out the initial state
+            writer.println("\n0: Initial State");
+            // Write out the final states
+            writer.print("Accepting State(s): ");
+            writer.print(String.join(",", finalStates));
+            writer.println("\n");
+            // Write out the input strings for testing with no empty line at the end
+            writer.println("-- Input strings for testing -----------");
+            for (int i = 0; i < inputStrings.size(); i++) {
+                writer.print(inputStrings.get(i));
+                if (i != inputStrings.size() - 1)
+                    writer.println();
+            }
 
+
+
+
+            // Close the writer so it outputs to the file
+            writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void validateInputStrings(String inputFileName, List<String> inputStrings) {
@@ -388,11 +437,6 @@ class DFAMinimizer {
         }
         System.out.println("\n");
         System.out.println("Yes: "+ yesCount + " No: " + noCount + "\n");
-    }
-
-    public void readDFA(String dfaFileName)
-    {
-
     }
 }
 
