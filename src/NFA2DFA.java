@@ -356,7 +356,7 @@ class DFAMinimizer {
         // Write out the minimized DFA to a .dfaMin file
         try {
             PrintWriter writer = new PrintWriter(inputFileName + "Min", StandardCharsets.UTF_8);
-            writer.println("|Q|: " + numStates + state.length);
+            writer.println("|Q|: " + state.length);
             // Write the alphabet with 5 spaces between each letter except for the last one which should have no spaces after it
             writer.print("Sigma:     ");
             for (int i = 0; i < alphabet.length - 1; i++) {
@@ -395,14 +395,10 @@ class DFAMinimizer {
                 if (i != inputStrings.size() - 1)
                     writer.println();
             }
-
-
-
-
             // Close the writer so it outputs to the file
             writer.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println("Error writing minimized DFA to file: " + e.getMessage());
         }
     }
 
@@ -678,7 +674,7 @@ public class NFA2DFA {
         // Output the DFA to a .dfa file, using X.dfa as an example and replacing the .nfa with .dfa
         try {
             PrintWriter writer = new PrintWriter(nfaFileName.replace(".nfa", ".dfa"), StandardCharsets.UTF_8);
-            // Write the number of states as |Q|: number of states
+            // Write the number of states as |Q|: number of states (first column)
             writer.println("|Q|: " + dfaTransitions.size());
             // Write the alphabet except the final one as Sigma using 5 spaces to separate each letter,
             // making sure the final one doesn't have spaces after it
@@ -729,15 +725,11 @@ public class NFA2DFA {
      * @param inputFileName The name of the file containing the DFA to be minimized.
      * @param inputStrings The list of input strings read from the file to be tested.
      */
-    private void MinimizingDFA(String inputFileName, List<String> inputStrings) {
+    private void readAndMinimize(String inputFileName, List<String> inputStrings) {
         try {
-            // Test print
-            System.out.println("Minimizing DFA " + inputFileName + "...\n");
-
             DFAMinimizer dfaMinimizer = new DFAMinimizer();
             String[] tokenBuffer;
             // TODO: Remove printouts later
-            //System.out.println("Start reading in the DFA from file " + inputFileName);
             // Read in the size of the DFA
             FileReader fr = new FileReader(inputFileName);
             BufferedReader br = new BufferedReader(fr);
@@ -745,7 +737,6 @@ public class NFA2DFA {
             StringTokenizer st = new StringTokenizer(br.readLine(), ":");
             st.nextToken();
             int numStates = Integer.parseInt(st.nextToken().trim());
-            //System.out.println("Number of states: " + numStates);
             // Grab the alphabet (sigma values) after the Sigma: part
             st = new StringTokenizer(br.readLine(), ": ");
             st.nextToken();
@@ -757,7 +748,6 @@ public class NFA2DFA {
                     minDFASigma.append(" ");
                 }
             }
-            //System.out.println("Alphabet: " + minDFASigma);
             // Skip the dashed line
             br.readLine();
             // Read in the transition table, replacing values in dfaTransitions with the new values
@@ -772,20 +762,17 @@ public class NFA2DFA {
             for (int i = 0; i < dfaTransitions.size(); i++) {
                 minDFAStates.append(String.valueOf(i)).append("  ");
             }
-            // Print out minDFAStates
-            //System.out.println("States: " + minDFAStates);
             minDFAStates = new StringBuilder(minDFAStates.toString().replaceAll("\\s+", " "));
             tokenBuffer = minDFAStates.toString().replaceFirst("^ ", "").split(" ");
             dfaMinimizer.initState(tokenBuffer);
             minDFASigma = new StringBuilder(minDFASigma.toString().replaceAll("\\s+", " "));
-            //System.out.println("New alphabet: " + minDFASigma);
             tokenBuffer = minDFASigma.toString().replaceFirst("^ ", "").split(" ");
             dfaMinimizer.initAlphabet(tokenBuffer);
             String DFAInitialState = "0";
             DFAInitialState = DFAInitialState.replaceAll("\\s+", " ");
             tokenBuffer = DFAInitialState.replaceFirst("^ ", "").split(" ");
             dfaMinimizer.setInitial(tokenBuffer[0]);
-            StringBuilder DFAFinalState = new StringBuilder();
+            StringBuilder minDFAFinalState = new StringBuilder();
             br.readLine();
             br.readLine();
             st = new StringTokenizer(br.readLine(), ":, ");
@@ -793,13 +780,13 @@ public class NFA2DFA {
             st.nextToken();
             // Read in the accepting states from the DFA file into dfaFinalStates
             while (st.hasMoreTokens()) {
-                DFAFinalState.append(st.nextToken().trim());
+                minDFAFinalState.append(st.nextToken().trim());
                 if (st.hasMoreTokens()) {
-                    DFAFinalState.append(" ");
+                    minDFAFinalState.append(" ");
                 }
             }
-            DFAFinalState = new StringBuilder(DFAFinalState.toString().replaceAll("\\s+", " "));
-            tokenBuffer = DFAFinalState.toString().replaceFirst("^ ", "").split(" ");
+            minDFAFinalState = new StringBuilder(minDFAFinalState.toString().replaceAll("\\s+", " "));
+            tokenBuffer = minDFAFinalState.toString().replaceFirst("^ ", "").split(" ");
             dfaMinimizer.setFinal(tokenBuffer);
             StringBuilder DFA_Rows_tt = new StringBuilder();
             dfaMinimizer.createTransitionTable();
@@ -826,7 +813,7 @@ public class NFA2DFA {
             System.out.println();
 
             // Print out the minimized DFA
-            System.out.println("Minimized DFA from " + inputFileName);
+            System.out.println("Minimized DFA from " + inputFileName + ":");
             minDFA minimizer = new minDFA(dfaMinimizer, false);
             DFAMinimizer min = minimizer.minimizerObj(dfaMinimizer);
             min.printMinimizedDFA(inputFileName, inputStrings, numStates);
@@ -836,9 +823,7 @@ public class NFA2DFA {
         }
         catch (Exception e) {
             System.out.println("An unexpected error has occurred during minimization: " + e.getMessage());
-            System.exit(1);
         }
-
     }
 
     /**
@@ -877,18 +862,16 @@ public class NFA2DFA {
     public static void main(String[] args) {
         // Should accept only one argument
         if(args.length != 1) {
-            System.out.println("Please enter a valid file name. Usage: java NFA2DFA <filename>");
+            System.out.println("Please enter a valid .nfa file. Usage: java NFA2DFA <filename>");
             return;
         }
         NFA2DFA program = new NFA2DFA(args[0]);
         program.NFAtoDFA();
-        //TODO: Remove timer before submission
-        long startTime = System.nanoTime();
         // Automatically start minimizing the DFA by replacing the .nfa extension with .dfa
-        program.MinimizingDFA(program.nfaFileName.replace(".nfa", ".dfa"), program.inputStrings);
-        long endTime = System.nanoTime();
-        long timeElapsed = endTime - startTime;
-        double milliseconds = (double) timeElapsed / 1000000 % 1000;
-        System.out.println("Time taken to minimize the DFA: " + String.format("%.2f", milliseconds) + " milliseconds");
+        // Create timer to see how long it takes to minimize the DFA
+        long startTime = System.currentTimeMillis();
+        program.readAndMinimize(program.nfaFileName.replace(".nfa", ".dfa"), program.inputStrings);
+        long endTime = System.currentTimeMillis();
+        System.out.println("Time to minimize DFA: " + (endTime - startTime) + " milliseconds");
     }
 }
