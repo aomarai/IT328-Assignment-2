@@ -1,7 +1,6 @@
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
 class minDFA {
     private String[][] table;
 
@@ -205,8 +204,8 @@ class DFAMinimizer {
 
     public void setFinal(String[] st) {
         finalState = new ArrayList<Integer>();
-        for (int i = 0; i < st.length; i++) {
-            finalState.add(getIndexOf(st[i]));
+        for (String s : st) {
+            finalState.add(getIndexOf(s));
         }
     }
 
@@ -227,8 +226,8 @@ class DFAMinimizer {
     }
 
     public boolean checkFinal(String st) {
-        for (int i = 0; i < finalState.size(); i++) {
-            if (this.getIndexOf(st) == finalState.get(i))
+        for (Integer integer : finalState) {
+            if (this.getIndexOf(st) == integer)
                 return true;
         }
         return false;
@@ -258,7 +257,7 @@ class DFAMinimizer {
         transitionTable = new int[state.length][alphabet.length];
     }
 
-    public void setRowTT(String st[]) {
+    public void setRowTT(String[] st) {
         int index = this.getIndexOf(st[0]);
         for (int i = 1; i < st.length; i++) {
             transitionTable[index][i - 1] = this.getIndexOf(st[i]);
@@ -287,7 +286,8 @@ class DFAMinimizer {
         int symbolIndex = this.getSymbolIndex(symbol);
         return state[transitionTable[fromIndex][symbolIndex]];
     }
-    public void printMinimizedDFA(String inputFileName, List<String> inputStrings) {
+    public void printMinimizedDFA(String inputFileName, List<String> inputStrings, int numStates) {
+        // Print out the number of states
         int largestLen = 0;
         for (String s : state) {
             if (s.length() > largestLen)
@@ -324,10 +324,25 @@ class DFAMinimizer {
             System.out.print("-");
         }
         System.out.println("\n0: Initial State");
-        Set<String> finalStates = new HashSet<String>();
+        ArrayList<String> finalStates = new ArrayList<>();
         for (Integer val : finalState) {
             finalStates.add(val.toString());
         }
+        // Remove duplicates from the final states
+        Set<String> hs = new HashSet<>(finalStates);
+        finalStates.clear();
+        finalStates.addAll(hs);
+        // Sort the final states without using the Collections.sort() method
+        for (int i = 0; i < finalStates.size(); i++) {
+            for (int j = i + 1; j < finalStates.size(); j++) {
+                if (Integer.parseInt(finalStates.get(i)) > Integer.parseInt(finalStates.get(j))) {
+                    String temp = finalStates.get(i);
+                    finalStates.set(i, finalStates.get(j));
+                    finalStates.set(j, temp);
+                }
+            }
+        }
+        // Print out the final states
         System.out.print(String.join(",", finalStates));
         System.out.print(": Accepting State(s)");
         System.out.println("\n");
@@ -335,7 +350,10 @@ class DFAMinimizer {
         validateInputStrings(inputFileName, inputStrings);
 
         // Print out the number of states from the original DFA and the minimized DFA
-        System.out.println("|Q|" + " -> " + state.length);
+        // Example: "|Q| 6 -> 4"
+        // TODO: Grab the previous number of states from the original DFA via file reading
+        System.out.println("|Q| " + numStates + " -> " + state.length);
+
 
     }
 
@@ -354,6 +372,10 @@ class DFAMinimizer {
                 else
                     currState = transitionTable[currState][alphaIndex];
             }
+            // Print out two lines of 15 yes/no's each
+            if ((yesCount + noCount) % 15 == 0) {
+                System.out.println();
+            }
             if(finalState.contains(currState)) {
                 yesCount++;
                 System.out.print("Yes ");
@@ -362,9 +384,10 @@ class DFAMinimizer {
                 noCount++;
                 System.out.print("No ");
             }
+
         }
         System.out.println("\n");
-        System.out.println("Yes: "+ yesCount + " No: " + noCount);
+        System.out.println("Yes: "+ yesCount + " No: " + noCount + "\n");
     }
 
     public void readDFA(String dfaFileName)
@@ -534,7 +557,7 @@ public class NFA2DFA {
     }
 
     /**
-     * Recursively finds all the states that can be reached from the given state.
+     * Helper method for convertNFA() that takes in a state and an alphabet and returns the next state.
      * @param alphabet The string of symbols accepted by the NFA. (e.g. "ab")
      * @param state The current state of the NFA.
      * @param tempStatesHolder The set of states that the NFA can transition to.
@@ -545,10 +568,15 @@ public class NFA2DFA {
         int lambdaIndex = isFinal ? currState.size()-1 : sigma.indexOf(alphabet);
         Set<Integer> currStateInfo = currState.get(lambdaIndex);
         for (int val : currStateInfo) {
-            if(val == state && isFinal)// Reference to itself and final
+            if(val == state && isFinal) // Reference to itself and final
                 tempStatesHolder.add(val);
             else
-                transitionState(lambdaAlphabet, val, tempStatesHolder);
+            {
+                if(!tempStatesHolder.contains(val)) {
+                    tempStatesHolder.add(val);
+                    transitionState(lambdaAlphabet, val, tempStatesHolder);
+                }
+            }
         }
     }
 
@@ -557,7 +585,7 @@ public class NFA2DFA {
      */
     private void printDFA() {
         // Print the name of the file, replacing the .nfa with .dfa
-        System.out.println("NFA " + nfaFileName + " to DFA " + nfaFileName.replace(".nfa", ".dfa\n"));
+        System.out.println("NFA " + nfaFileName + " to DFA " + nfaFileName.replace(".nfa", ".dfa:\n"));
         System.out.print(" Sigma:     ");
         // Print the alphabet and get the length of the printed line
         for (String alphabetString : sigma) {
@@ -588,6 +616,16 @@ public class NFA2DFA {
         List<String> finalStates = new ArrayList<String>();
         for (Integer val : dfaFinalStates) {
             finalStates.add(val.toString());
+        }
+        //Sort the final states
+        for (int i = 0; i < finalStates.size(); i++) {
+            for (int j = i + 1; j < finalStates.size(); j++) {
+                if (Integer.parseInt(finalStates.get(i)) > Integer.parseInt(finalStates.get(j))) {
+                    String temp = finalStates.get(i);
+                    finalStates.set(i, finalStates.get(j));
+                    finalStates.set(j, temp);
+                }
+            }
         }
         System.out.print(String.join(",", finalStates));
         System.out.print(": Accepting State(s)\n\n");
@@ -642,56 +680,125 @@ public class NFA2DFA {
         }
     }
 
+    /**
+     * Reads the contents of the input DFA file and sends it to a DFAMinimizer object to be minimized.
+     * @param inputFileName The name of the file containing the DFA to be minimized.
+     * @param inputStrings The list of input strings read from the file to be tested.
+     */
     private void MinimizingDFA(String inputFileName, List<String> inputStrings) {
-        DFAMinimizer dfaMinimizer = new DFAMinimizer();
-        String[] tokens;
-        StringBuilder DFAStates = new StringBuilder();
-        for (int i = 0; i < dfaTransitions.size(); i++) {
-            DFAStates.append(String.valueOf(i)).append("  ");
-        }
-        DFAStates = new StringBuilder(DFAStates.toString().replaceAll("\\s+", " "));
-        tokens = DFAStates.toString().replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.initState(tokens);
-        StringBuilder DFASigma = new StringBuilder();
-        for (String alphabet : sigma) {
-            DFASigma.append(" ").append(alphabet);
-        }
-        DFASigma = new StringBuilder(DFASigma.toString().replaceAll("\\s+", " "));
-        tokens = DFASigma.toString().replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.initAlphabet(tokens);
-        String DFAInitialState = "0";
-        DFAInitialState = DFAInitialState.replaceAll("\\s+", " ");
-        tokens = DFAInitialState.replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.setInitial(tokens[0]);
-        StringBuilder DFA_finalstate = new StringBuilder();
-        for (int i : dfaFinalStates) {
-            DFA_finalstate.append(" ").append(i);
-        }
-        DFA_finalstate = new StringBuilder(DFA_finalstate.toString().replaceAll("\\s+", " "));
-        tokens = DFA_finalstate.toString().replaceFirst("^ ", "").split(" ");
-        dfaMinimizer.setFinal(tokens);
-        StringBuilder DFA_Rows_tt = new StringBuilder();
-        dfaMinimizer.createTransitionTable();
-        for (int i = 0; i < dfaTransitions.size(); i++) {
-            DFA_Rows_tt.append(String.valueOf(i));
-            for (int j = 0; j < dfaTransitions.get(i).size(); j++) {
-                int temp3 = dfaTransitions.get(i).get(j);
-                DFA_Rows_tt.append(" ").append(String.valueOf(temp3));
+        try {
+            // Test print
+            System.out.println("Minimizing DFA " + inputFileName + "...\n");
+
+            DFAMinimizer dfaMinimizer = new DFAMinimizer();
+            String[] tokenBuffer;
+            // TODO: Remove printouts later
+            //System.out.println("Start reading in the DFA from file " + inputFileName);
+            // Read in the size of the DFA
+            FileReader fr = new FileReader(inputFileName);
+            BufferedReader br = new BufferedReader(fr);
+            // Grab the first number which is the number of states after the |Q|: part
+            StringTokenizer st = new StringTokenizer(br.readLine(), ":");
+            st.nextToken();
+            int numStates = Integer.parseInt(st.nextToken().trim());
+            //System.out.println("Number of states: " + numStates);
+            // Grab the alphabet (sigma values) after the Sigma: part
+            st = new StringTokenizer(br.readLine(), ": ");
+            st.nextToken();
+            // Add each sigma value to the sigma list with a space in between, unless it's the last one
+            StringBuilder minDFASigma = new StringBuilder();
+            while (st.hasMoreTokens()) {
+                minDFASigma.append(st.nextToken().trim());
+                if (st.hasMoreTokens()) {
+                    minDFASigma.append(" ");
+                }
             }
-            DFA_Rows_tt = new StringBuilder(DFA_Rows_tt.toString().replaceAll("\\s+", " "));
-            tokens = DFA_Rows_tt.toString().replaceFirst("^ ", "").split(" ");
-            dfaMinimizer.setRowTT(tokens);
-            DFA_Rows_tt = new StringBuilder(" ");
+            //System.out.println("Alphabet: " + minDFASigma);
+            // Skip the dashed line
+            br.readLine();
+            // Read in the transition table, replacing values in dfaTransitions with the new values
+            for (int i = 0; i < numStates; i++) {
+                st = new StringTokenizer(br.readLine(), ": ");
+                st.nextToken();
+                for (int j = 0; j < sigma.size(); j++) {
+                    dfaTransitions.get(i).set(j, Integer.parseInt(st.nextToken()));
+                }
+            }
+            StringBuilder minDFAStates = new StringBuilder();
+            for (int i = 0; i < dfaTransitions.size(); i++) {
+                minDFAStates.append(String.valueOf(i)).append("  ");
+            }
+            // Print out minDFAStates
+            //System.out.println("States: " + minDFAStates);
+            minDFAStates = new StringBuilder(minDFAStates.toString().replaceAll("\\s+", " "));
+            tokenBuffer = minDFAStates.toString().replaceFirst("^ ", "").split(" ");
+            dfaMinimizer.initState(tokenBuffer);
+            minDFASigma = new StringBuilder(minDFASigma.toString().replaceAll("\\s+", " "));
+            //System.out.println("New alphabet: " + minDFASigma);
+            tokenBuffer = minDFASigma.toString().replaceFirst("^ ", "").split(" ");
+            dfaMinimizer.initAlphabet(tokenBuffer);
+            String DFAInitialState = "0";
+            DFAInitialState = DFAInitialState.replaceAll("\\s+", " ");
+            tokenBuffer = DFAInitialState.replaceFirst("^ ", "").split(" ");
+            dfaMinimizer.setInitial(tokenBuffer[0]);
+            StringBuilder DFAFinalState = new StringBuilder();
+            br.readLine();
+            br.readLine();
+            st = new StringTokenizer(br.readLine(), ":, ");
+            st.nextToken();
+            st.nextToken();
+            // Read in the accepting states from the DFA file into dfaFinalStates
+            while (st.hasMoreTokens()) {
+                DFAFinalState.append(st.nextToken().trim());
+                if (st.hasMoreTokens()) {
+                    DFAFinalState.append(" ");
+                }
+            }
+            DFAFinalState = new StringBuilder(DFAFinalState.toString().replaceAll("\\s+", " "));
+            tokenBuffer = DFAFinalState.toString().replaceFirst("^ ", "").split(" ");
+            dfaMinimizer.setFinal(tokenBuffer);
+            StringBuilder DFA_Rows_tt = new StringBuilder();
+            dfaMinimizer.createTransitionTable();
+            for (int i = 0; i < dfaTransitions.size(); i++) {
+                DFA_Rows_tt.append(String.valueOf(i));
+                for (int j = 0; j < dfaTransitions.get(i).size(); j++) {
+                    int temp3 = dfaTransitions.get(i).get(j);
+                    DFA_Rows_tt.append(" ").append(String.valueOf(temp3));
+                }
+                DFA_Rows_tt = new StringBuilder(DFA_Rows_tt.toString().replaceAll("\\s+", " "));
+                tokenBuffer = DFA_Rows_tt.toString().replaceFirst("^ ", "").split(" ");
+                dfaMinimizer.setRowTT(tokenBuffer);
+                DFA_Rows_tt = new StringBuilder(" ");
+            }
+            // Read in the input strings for testing into inputStrings
+            br.readLine();
+            br.readLine();
+            String currentLine;
+            // Clear the inputStrings list before adding new input strings
+            inputStrings.clear();
+            while ((currentLine = br.readLine()) != null) {
+                inputStrings.add(currentLine);
+            }
+            System.out.println();
+
+            // Print out the minimized DFA
+            System.out.println("Minimized DFA from " + inputFileName);
+            minDFA minimizer = new minDFA(dfaMinimizer, false);
+            DFAMinimizer min = minimizer.minimizerObj(dfaMinimizer);
+            min.printMinimizedDFA(inputFileName, inputStrings, numStates);
         }
-        System.out.println();
-        System.out.println("Minimized DFA from " + inputFileName);
-        minDFA minimizer = new minDFA(dfaMinimizer, false);
-        DFAMinimizer min = minimizer.minimizerObj(dfaMinimizer);
-        min.printMinimizedDFA(inputFileName, inputStrings);
+        catch (IOException e) {
+            System.out.println("Error reading file: " + inputFileName + e.getMessage());
+        }
+        catch (Exception e) {
+            System.out.println("An unexpected error has occurred during minimization: " + e.getMessage());
+            System.exit(1);
+        }
+
     }
 
     /**
-     * Validates the input strings for the DFA.
+     * Validates the input strings for the minimized DFA.
      */
     private void validateInputStrings() {
         int yesCount = 0;
@@ -707,6 +814,9 @@ public class NFA2DFA {
                 }
                 else
                     currState = dfaTransitions.get(currState).get(alphaIndex);
+            }
+            if ((yesCount + noCount) % 15 == 0) {
+                System.out.println();
             }
             if(dfaFinalStates.contains(currState)) {
                 yesCount++;
@@ -728,6 +838,13 @@ public class NFA2DFA {
         }
         NFA2DFA program = new NFA2DFA(args[0]);
         program.NFAtoDFA();
+        //TODO: Remove timer before submission
+        long startTime = System.nanoTime();
+        // Automatically start minimizing the DFA by replacing the .nfa extension with .dfa
         program.MinimizingDFA(program.nfaFileName.replace(".nfa", ".dfa"), program.inputStrings);
+        long endTime = System.nanoTime();
+        long timeElapsed = endTime - startTime;
+        double milliseconds = (double) timeElapsed / 1000000 % 1000;
+        System.out.println("Time taken to minimize the DFA: " + String.format("%.2f", milliseconds) + " milliseconds");
     }
 }
